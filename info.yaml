@@ -1,8 +1,7 @@
 # Tiny Tapeout project information
 project:
   title:        "MiniTPU"      # Project title
-  author v1:       "Albert Huang, Matthew Kong, Jiya Nair, Rivera Wijaya"      # Your name
-  author v2:      "Rivera Wijaya"      # Your name
+  author:      "Rivera Wijaya"      # Project author
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "A Tensor Processing Unit capable of computing 4x4 INT6 matrix multiplication for neural networks."      # One line description of what your project does
   language:     "SystemVerilog, Verilog, Phyton (cocotb)" # other examples include SystemVerilog, Amaranth, VHDL, etc
