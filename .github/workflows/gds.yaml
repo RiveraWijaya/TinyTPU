@@ -22,6 +22,20 @@ jobs:
         with:
           pdk: sky130A
 
+      - name: Render SVG from GDS
+        run: ./tt/tt_tool.py --create-svg
+
+      - name: Upload SVG layout
+        id: svg
+        uses: actions/upload-artifact@v4
+        with:
+          name: gds_svg
+          path: gds_render.svg
+          if-no-files-found: error
+
+      - name: Link SVG layout
+        run: echo "[Download SVG layout](${{ steps.svg.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
+
   precheck:
     needs: gds
     if: github.ref_name != 'main'
