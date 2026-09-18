@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MiniTPU version 2 layout</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <a class="back" href="../">← Both versions</a>
+  <p class="eyebrow">MiniTPU</p>
+  <h1>Version 2 layout</h1>
+  <img class="layout" src="gds_render.png" alt="GDS layout of MiniTPU version 2">
+  <nav class="links" aria-label="Layout files">
+    <a id="viewer" href="tinytapeout.oas">Open 3D viewer</a>
+    <a href="gds_render.png">Download PNG</a>
+    <a href="gds_render.svg">Download SVG</a>
+    <a href="tinytapeout.gds">Download GDS</a>
+    <a href="tinytapeout.oas">Download OAS</a>
+  </nav>
+  <script>
+    const model = new URL("tinytapeout.oas", document.baseURI).href;
+    document.getElementById("viewer").href =
+      `https://gds-viewer.tinytapeout.com/?model=${encodeURIComponent(model)}&pdk=sky130A`;
+  </script>
+</body>
+</html>

@@ -18,7 +18,7 @@ The matrices are multiplied using a 4x4 systolic array circuit that contains a t
 
 ![MiniTPU GDS layout preview](gds_preview.png)
 
-[View the full-resolution layout preview](https://riverawijaya.github.io/TinyTPU/gds_render.png).
+[View both version layouts](https://riverawijaya.github.io/TinyTPU/).
 
 ## How to test
 

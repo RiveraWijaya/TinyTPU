@@ -1,0 +1,72 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/pages.yaml
+      - site/**
+  workflow_run:
+    workflows: [gds]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect both GDS versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -R site _site
+
+          for branch in version1 version2; do
+            run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow gds.yaml --branch "$branch" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+            if [[ -z "$run_id" ]]; then
+              echo "No successful GDS run found for $branch" >&2
+              exit 1
+            fi
+
+            download_dir="$RUNNER_TEMP/$branch"
+            gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name tt_submission --dir "$download_dir/submission"
+            gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name gds_render --dir "$download_dir/png"
+            gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name gds_svg --dir "$download_dir/svg"
+
+            gds_file=$(find "$download_dir/submission" -type f -name '*.gds' -print -quit)
+            oas_file=$(find "$download_dir/submission" -type f -name '*.oas' -print -quit)
+            png_file=$(find "$download_dir/png" -type f -name 'gds_render.png' -print -quit)
+            svg_file=$(find "$download_dir/svg" -type f -name 'gds_render.svg' -print -quit)
+            test -n "$gds_file" && test -n "$oas_file" && test -n "$png_file" && test -n "$svg_file"
+
+            cp "$gds_file" "_site/$branch/tinytapeout.gds"
+            cp "$oas_file" "_site/$branch/tinytapeout.oas"
+            cp "$png_file" "_site/$branch/gds_render.png"
+            cp "$svg_file" "_site/$branch/gds_render.svg"
+            echo "$branch uses GDS run $run_id" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
