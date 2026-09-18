@@ -2,10 +2,14 @@ name: gds
 
 on:
   push:
+    branches:
+      - version1
+      - version2
   workflow_dispatch:
 
 jobs:
   gds:
+    if: github.ref_name != 'main'
     runs-on: ubuntu-24.04
     steps:
       - name: checkout repo
@@ -20,6 +24,7 @@ jobs:
 
   precheck:
     needs: gds
+    if: github.ref_name != 'main'
     runs-on: ubuntu-24.04
     steps:
       - name: Run Tiny Tapeout Precheck
@@ -27,6 +32,7 @@ jobs:
 
   gl_test:
     needs: gds
+    if: github.ref_name != 'main'
     runs-on: ubuntu-24.04
     steps:
       - name: checkout repo
@@ -39,6 +45,7 @@ jobs:
 
   viewer:
     needs: gds
+    if: github.ref_name != 'main'
     runs-on: ubuntu-24.04
     permissions:
       pages: write      # to deploy to Pages
