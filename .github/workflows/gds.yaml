@@ -43,3 +43,45 @@ jobs:
       - name: GL test
         uses: TinyTapeout/tt-gds-action/gl_test@ttsky25b
 
+  docs_preview:
+    needs: gds
+    if: github.ref_name != 'main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gds_render
+          path: preview
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Resize preview for docs
+        run: |
+          python -m pip install Pillow==11.3.0
+          python .github/scripts/update_gds_preview.py preview/gds_render.png docs/gds_preview.png
+      - name: Commit updated preview and rebuild docs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_sha=$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)
+          if [[ "$remote_sha" != "$GITHUB_SHA" ]]; then
+            echo "A newer push exists; its GDS run will update the preview."
+            exit 0
+          fi
+          if git diff --quiet -- docs/gds_preview.png; then
+            echo "Docs preview is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/gds_preview.png
+          git commit -m "Refresh GDS preview for $GITHUB_REF_NAME [skip ci]"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+          gh workflow run docs.yaml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME"
+
