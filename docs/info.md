@@ -14,6 +14,12 @@ This project is a scaled down version that can multiple two 4x4 matrices with si
 
 The matrices are multiplied using a 4x4 systolic array circuit that contains a total of 16 processing elements (PEs), which perform Multiply-Add-Accumulate (MAC) operations.
 
+### Layout preview
+
+![MiniTPU GDS layout preview](gds_preview.png)
+
+[View the full-resolution layout preview](https://riverawijaya.github.io/TinyTPU/gds_render.png).
+
 ## How to test
 
 Matrices A and B are 4x4 matrices, each element of which is a 7-bit number with an additional signed bit (total 8 bits). The output matrix, C, is also a 4x4 matrix, each element of which is an unsigned 12-bit number.
