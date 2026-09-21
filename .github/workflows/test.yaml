@@ -1,7 +1,15 @@
 name: test
-on: [push, workflow_dispatch]
+
+on:
+  push:
+    branches:
+      - version1
+      - version2
+  workflow_dispatch:
+
 jobs:
   test:
+    if: github.ref_name != 'main'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repo

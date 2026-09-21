@@ -2,10 +2,14 @@ name: docs
 
 on:
   push:
+    branches:
+      - version1
+      - version2
   workflow_dispatch:
 
 jobs:
   docs:
+    if: github.ref_name != 'main'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repo

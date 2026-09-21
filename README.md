@@ -15,6 +15,5 @@ The [layout homepage](https://riverawijaya.github.io/TinyTPU/) shows only Versio
 ## Project files
 
 - [Project documentation](docs/info.md) explains the design and its interface.
-- [RTL sources](src/) contain the TPU implementation.
-- [Tests](test/README.md) describe how to run the simulation.
-- [Tiny Tapeout configuration](info.yaml) defines the top module, source files, and pinout.
+- [Pages source](site/) builds the Version 1 and Version 2 comparison site.
+- RTL sources and tests live on the [`version1`](../../tree/version1) and [`version2`](../../tree/version2) branches.
