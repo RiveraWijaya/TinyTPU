@@ -6,14 +6,15 @@ TinyTPU is a 4×4 INT6 matrix multiplication accelerator designed for Tiny Tapeo
 
 | Branch | Purpose | Layout |
 | --- | --- | --- |
-| `main` | Comparison branch | No separate GDS preview |
-| `version1` | Version 1 design | [PNG, SVG, GDS, OAS, and 3D viewer](https://riverawijaya.github.io/TinyTPU/version1/) |
-| `version2` | Version 2 design | [PNG, SVG, GDS, OAS, and 3D viewer](https://riverawijaya.github.io/TinyTPU/version2/) |
+| `main` | Comparison site, metadata, and branch checks | No separate GDS preview |
+| `version1` | Version 1 implementation | [PNG, SVG, GDS, OAS, and 3D viewer](https://riverawijaya.github.io/TinyTPU/version1/) |
+| `version2` | Version 2 implementation | [PNG, SVG, GDS, OAS, and 3D viewer](https://riverawijaya.github.io/TinyTPU/version2/) |
 
-The [layout homepage](https://riverawijaya.github.io/TinyTPU/) shows only Version 1 and Version 2. A successful GDS build updates that version's layout files and its preview in `docs/`.
+The [layout homepage](https://riverawijaya.github.io/TinyTPU/) shows only Version 1 and Version 2. A successful GDS build updates only that version's layout artifacts and preview. The main branch has no RTL implementation or GDS preview of its own.
 
-## Project files
+## Comparison files
 
-- [Project documentation](docs/info.md) explains the design and its interface.
-- [Pages source](site/) builds the Version 1 and Version 2 comparison site.
-- RTL sources and tests live on the [`version1`](../../tree/version1) and [`version2`](../../tree/version2) branches.
+- [Comparison documentation](docs/comparison.md) explains the branch layout and automated checks.
+- [Comparison test](test/README.md) validates both implementation branches and generates a Markdown report.
+- [Pages source](site/) builds the Version 1 and Version 2 layout site.
+- RTL sources, design documentation, and simulation tests live on the [`version1`](../../tree/version1) and [`version2`](../../tree/version2) branches.
