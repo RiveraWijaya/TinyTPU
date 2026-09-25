@@ -1,0 +1,55 @@
+name: comparison
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/comparison.yaml
+      - docs/comparison.md
+      - info.yaml
+      - README.md
+      - test/**
+  workflow_dispatch:
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout comparison branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch implementation branches
+        shell: bash
+        run: |
+          git fetch origin \
+            version1:refs/remotes/origin/version1 \
+            version2:refs/remotes/origin/version2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install comparison dependencies
+        run: python -m pip install -r test/requirements.txt
+
+      - name: Compare implementation branches
+        run: python test/compare_branches.py --output comparison-report.md
+
+      - name: Add comparison to job summary
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f comparison-report.md ]]; then
+            cat comparison-report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-report
+          path: comparison-report.md
+          if-no-files-found: error
