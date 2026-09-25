@@ -1,6 +1,7 @@
 # TinyTPU
 
 TinyTPU is a 4×4 INT6 matrix multiplication accelerator designed for Tiny Tapeout. This repository continues the [original team project](https://github.com/HynixCJR/ttsky-miniTPU) from the 2026 University of Toronto ASIC Hackathon.
+This repository is still under update for complete documentation for version 2. Version 1 however, is complete. 
 
 ## Explore the versions
 
