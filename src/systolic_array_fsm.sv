@@ -1,39 +1,35 @@
 /*
-* Systolic Array FSM
-* Two process
-* 4 States:     
-    IDLE,
-    UPDATE,
-    FLUSH,
-    CLEAR
-* 
-* Next State when receive a forward_systo = 1 signal
-* NOTE: Must be high for only one clock period
-* Maybe add adge detection later
-*
-* OUTPUT the curr_state_systo signal to systo_MUX to 
-* select the correct PE to flush into output buffer
-*/
+ * Systolic-array scheduler.
+ *
+ * The serialized input interface produces one array update every four clocks.
+ * Each PE accumulator remains live until all K_DIM products for its output
+ * have arrived. Completed anti-diagonals are flushed and cleared as the
+ * wavefront exits the array; incomplete diagonals are never disturbed.
+ */
 
 `default_nettype none
-//`include "params.vh"
 
-module systolic_array_fsm#(
-    parameter DATA_WIDTH = 6,   // width of input operands
-    parameter PSUM_WIDTH  = 14  // width of accumulator
+module systolic_array_fsm #(
+    parameter integer K_DIM = 8,
+    parameter integer ARRAY_SIZE = 4
 )(
-    input wire                      clk,            
-    input wire                      rst,                // Global reset
-    input wire                      ena,                // Starts the Systolic Array
+    input  wire        clk,
+    input  wire        rst,
+    input  wire        ena,
 
-    output logic                    forward_pulse,      // Send forward Pulse to all PE
-    output logic                    clear,              // Clear the selected PE 
-    output logic                    flush,              // Signal to store psum into output buffer
-    output logic [1:0]              PE_clear_select,    // Select which PE to reset
-    output logic [1:0]              c_out_select        // Select which c_out to store in output buffer
+    output logic       forward_pulse,
+    output logic       clear,
+    output logic       flush,
+    output logic [2*ARRAY_SIZE-2:0] clear_diagonal,
+    output logic [2*ARRAY_SIZE-2:0] flush_diagonal,
+    output logic [1:0] c_out_select
 );
 
-// Define 4 states
+localparam integer OUTPUT_DIAGONALS = 2 * ARRAY_SIZE - 1;
+localparam integer UPDATE_COUNT_MAX = K_DIM + OUTPUT_DIAGONALS - 1;
+localparam integer UPDATE_COUNT_WIDTH = $clog2(UPDATE_COUNT_MAX + 1);
+localparam integer PHASE_WIDTH = $clog2(K_DIM);
+
 typedef enum logic [2:0] {
     INIT,
     UPDATE,
@@ -41,99 +37,81 @@ typedef enum logic [2:0] {
     CLEAR,
     IDLE
 } systo_state_t;
+
 systo_state_t curr_state, next_state;
+logic [UPDATE_COUNT_WIDTH-1:0] updates_seen;
+logic [PHASE_WIDTH-1:0] completion_phase;
+logic [OUTPUT_DIAGONALS-1:0] completed_diagonals;
+logic accumulation_complete;
 
-
-logic [1:0] select_index;           // 0 to 3
-logic [1:0] first_matrix_counter;   // 0 to 3
-logic is_first_matrix;              // T/F
-
-//==FSM==================================================
-
-// State Register:
 always_ff @(posedge clk or posedge rst) begin
-    if(rst) begin
+    if (rst)
         curr_state <= INIT;
-    end
-    else begin
+    else
         curr_state <= next_state;
-    end
 end
 
-// Next-state logic:
 always_comb begin
     next_state = curr_state;
 
     case (curr_state)
-        INIT:
-            if (ena) next_state = UPDATE;
-
-        UPDATE:
-            next_state = FLUSH;
-
-        FLUSH:
-            next_state = CLEAR;
-
-        CLEAR:
-            next_state = IDLE;
-
-        IDLE:
-            if (ena) next_state = UPDATE;
-
-        default: 
-            next_state = curr_state;
+        INIT:   if (ena) next_state = UPDATE;
+        UPDATE:          next_state = FLUSH;
+        FLUSH:           next_state = CLEAR;
+        CLEAR:           next_state = IDLE;
+        IDLE:   if (ena) next_state = UPDATE;
+        default:         next_state = INIT;
     endcase
 end
 
-// Select Counter:
+// Saturating count is sufficient: after the full initial wavefront has
+// completed, the same K_DIM-phase pattern repeats for subsequent matrices.
 always_ff @(posedge clk or posedge rst) begin
     if (rst)
-        select_index <= 2'd1;
-    else if (curr_state == CLEAR)
-        select_index <= select_index + 1'b1;
+        updates_seen <= '0;
+    else if ((curr_state == UPDATE) && (updates_seen < UPDATE_COUNT_MAX))
+        updates_seen <= updates_seen + 1'b1;
 end
 
-// First matrix Counter: (Do not flush or clear the first matrix)
+assign accumulation_complete = (updates_seen >= K_DIM);
+
+// Phase zero corresponds to the first completed output (C[0][0]). The phase
+// advances once per array update after the K-beat accumulation warm-up.
 always_ff @(posedge clk or posedge rst) begin
     if (rst)
-        first_matrix_counter <= 2'd0;
-    else if (curr_state == CLEAR)
-        first_matrix_counter <= first_matrix_counter + 1'b1;
-end
-
-// is_first_matrix
-always_ff @(posedge clk or posedge rst) begin
-    if (rst)
-        is_first_matrix <= 1'b1;
-    else if (first_matrix_counter == 2'd3)
-        is_first_matrix <= 1'b0;
-end
-
-// Output Wires ============================
-always_comb begin
-    forward_pulse = '0;
-    flush = '0;
-    clear = '0;
-    if(curr_state == UPDATE) 
-        forward_pulse = 1'b1;       // forward_pulse
-    if(!is_first_matrix) begin
-        case(curr_state)                            
-            FLUSH:      flush = 1'b1;               // flush pulse
-            CLEAR:      clear = 1'b1;               // clear pulse
-            default: ;
-        endcase
+        completion_phase <= '0;
+    else if ((curr_state == CLEAR) && accumulation_complete) begin
+        if (completion_phase == K_DIM - 1)
+            completion_phase <= '0;
+        else
+            completion_phase <= completion_phase + 1'b1;
     end
 end
 
-assign PE_clear_select = select_index;          // PE_clear_select
-assign c_out_select = select_index;             // c_out_select
-
-/*
-always_ff @(posedge clk or posedge rst) begin   // c_out_select
-    if (rst)
-        c_out_select <= 2'd0;
-    else if (curr_state == FLUSH)
-        c_out_select <= select_index;
+// A diagonal d completes at update K_DIM+d. Diagonals separated by K_DIM can
+// complete together (the K=4 compatibility case), while K=8 has one idle
+// phase between successive matrices. This mask prevents premature clears.
+always_comb begin
+    completed_diagonals = '0;
+    if (accumulation_complete) begin
+        for (int diagonal = 0; diagonal < OUTPUT_DIAGONALS; diagonal++) begin
+            if (((diagonal % K_DIM) == completion_phase) &&
+                (updates_seen >= K_DIM + diagonal))
+                completed_diagonals[diagonal] = 1'b1;
+        end
+    end
 end
-*/
+
+always_comb begin
+    forward_pulse = (curr_state == UPDATE);
+    flush = (curr_state == FLUSH) && (|completed_diagonals);
+    clear = (curr_state == CLEAR) && (|completed_diagonals);
+    flush_diagonal = flush ? completed_diagonals : '0;
+    clear_diagonal = clear ? completed_diagonals : '0;
+end
+
+assign c_out_select = completion_phase[1:0];
+
 endmodule
+
+`default_nettype wire

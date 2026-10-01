@@ -8,11 +8,18 @@ You can also include images in this folder and reference them in the markdown. E
 -->
 
 ## How it works
-The Tensor Processing Unit (TPU) is an ASIC develop by Google to streamline the massive matrix multiplication calculations involved in neural network processing. 
 
-This project is a scaled down version that can multiple two 4x4 matrices with signed 8-bit elements. This produces an output matrix of signed 14-bit elements, that are then processed through the Rectified Linear Unit (ReLU) activation function to provide an output matrix with 12-bit elements. ReLU is commonly used in neural network processing to approximate non-linear behaviour.
+TinyTPU multiplies a signed-INT6 4x8 matrix by an 8x4 matrix. It retains the
+original 4x4 systolic array and its 16 multiply-accumulate processing elements.
+The shared K dimension arrives as two consecutive K=4 tiles; each PE keeps its
+15-bit partial sum across both tiles and is only flushed and cleared after all
+eight products for that output have accumulated.
 
-The matrices are multiplied using a 4x4 systolic array circuit that contains a total of 16 processing elements (PEs), which perform Multiply-Add-Accumulate (MAC) operations.
+Completed signed sums pass through ReLU and saturate to the unsigned 12-bit
+output range (0 to 4095). Results are serialized over the existing Tiny Tapeout
+GPIO interface, one 12-bit value per clock once output streaming begins.
+Each completed anti-diagonal occupies a four-value output group; unused lanes
+in that group are zero, never an intermediate partial sum.
 
 ### Layout preview
 
@@ -22,31 +29,18 @@ The matrices are multiplied using a 4x4 systolic array circuit that contains a t
 
 ## How to test
 
-Matrices A and B are 4x4 matrices, each element of which is a 7-bit number with an additional signed bit (total 8 bits). The output matrix, C, is also a 4x4 matrix, each element of which is an unsigned 12-bit number.
+Each A or B element is a signed 6-bit two's-complement value (-32 to 31). The
+result is a 4x4 matrix of unsigned 12-bit ReLU/saturated values.
 
 ### Input Load
 Notation: A_ij refers to the element in the ith row and jth column of matrix A.
 
 Matrix A elements are loaded into GPIO input pins uin[5:0]. Matrix B elements are loaded into both the input and bidirectional pins such that the top 2 bits (bits 4 and 5) are loaded through uin[7:6] and the bottom 4 bits (bits 0 to 3) are loaded through the bidirectional uio_in[3:0].
 
-The first inputs are entered staggered, according to what the systolic array circuit expects. Once the first pair of matrices have been entered, any subsequent inputs can be continuously entered. Each load cycle takes 4 clock cycles to fill the input buffers.
-
-Load cycle 1: 
-- Clock cycle 1: Load A_11 and B_11
-- Clock cycles 2 - 4: Load 0 for both A and B
-
-Load cycle 1:
-- Clock cycle 1: Load A_12 and B_21
-- Clock cycle 2: Load A_21 and B_12
-- Clock cycles 3 - 4: Load 0
-
-Load cycle 2:
-- Clock cycle 1: Load A_13 and B_31
-- Clock cycle 2: Load A_22 and B_22
-- Clock cycle 3: Load A_31 and B_13
-- Clock cycle 4: Load 0
-
-Load cycles 4 - 7: Follow the pattern of the systolic array
+Inputs use the usual systolic wavefront. For update step `t`, serialized clock
+`i` (0 through 3) carries `A[i][t-i]` and `B[t-i][i]`; out-of-range K indices
+are zero. Each update therefore takes four physical clock cycles. K=8 needs
+eight accumulation updates, followed by six wavefront-drain updates.
 
 ## External hardware
 

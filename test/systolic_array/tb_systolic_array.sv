@@ -20,7 +20,7 @@ module systolic_array_tb;
     // Parameters
     // ----------------------------------------
     localparam DATA_WIDTH  = 6;
-    localparam PSUM_WIDTH  = 14;
+    localparam PSUM_WIDTH  = 15;
     localparam ARRAY_SIZE  = 4;
 
     // ----------------------------------------

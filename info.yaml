@@ -3,8 +3,8 @@ project:
   title:        "TinyTPU"      # Project title
   author:      "Rivera Wijaya"      # Project author
   discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "A Tensor Processing Unit capable of computing 4x4 INT6 matrix multiplication for neural networks."      # One line description of what your project does
-  language:     "SystemVerilog, Verilog, Phyton (cocotb)" # other examples include SystemVerilog, Amaranth, VHDL, etc
+  description:  "A 16-PE TinyTPU for signed-INT6 4x8 by 8x4 matrix multiplication with ReLU/saturation."      # One line description of what your project does
+  language:     "SystemVerilog, Verilog, Python (cocotb)" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     33000000      # Clock frequency in Hz (or 0 if not applicable)
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.

@@ -5,6 +5,8 @@
 SIM ?= icarus
 FST ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG ?= verilog
+K_DIM ?= 8
+export K_DIM
 SRC_DIR = $(PWD)/../src
 PROJECT_SOURCES = tt_um_4x4TPU.sv \
 				  IO_Interface.v \
@@ -18,7 +20,8 @@ PROJECT_SOURCES = tt_um_4x4TPU.sv \
 ifneq ($(GATES),yes)
 
 # RTL simulation:
-SIM_BUILD				= sim_build/rtl
+SIM_BUILD				= sim_build/rtl-k$(K_DIM)
+COMPILE_ARGS += -DK_DIM=$(K_DIM)
 VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
 # VERILOG_SOURCES += $(wildcard $(SRC_DIR)/*.sv) $(wildcard $(SRC_DIR)/*.v) 
 else

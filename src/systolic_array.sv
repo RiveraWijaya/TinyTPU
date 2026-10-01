@@ -3,7 +3,7 @@
 
 module systolic_array #(
     parameter DATA_WIDTH = 6,   // width of input operands
-    parameter PSUM_WIDTH  = 14, // width of accumulator
+    parameter PSUM_WIDTH  = 15, // width of accumulator
     parameter ARRAY_SIZE = 4
 ) (
     input wire                          clk,
@@ -73,7 +73,10 @@ module systolic_array #(
     generate
         for (rows = 0; rows < ARRAY_SIZE; rows = rows + 1) begin
             for (cols = 0; cols < ARRAY_SIZE; cols = cols + 1) begin
-                processing_element u1 (
+                processing_element #(
+                    .DATA_WIDTH(DATA_WIDTH),
+                    .PSUM_WIDTH(PSUM_WIDTH)
+                ) u1 (
                     .clk(clk),
                     .rst(rst),
                     .clear(PE_clear[rows][cols]),               // Indipendent Clear Signals

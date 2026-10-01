@@ -7,9 +7,10 @@
 
 module tt_um_4x4TPU#(
     parameter DATA_WIDTH = 6,  // width of input operands
-    parameter PSUM_WIDTH = 14, // width of accumulator
+    parameter PSUM_WIDTH = 15, // signed INT6 x K=8 worst case requires 15 bits
     parameter OUTR_WIDTH = 12, // width of output buffer
-    parameter ARRAY_SIZE = 4   // width of systolic array
+    parameter ARRAY_SIZE = 4,  // width of systolic array
+    parameter K_DIM = 8        // shared dimension (two persistent K=4 tiles)
 )(
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
@@ -42,7 +43,8 @@ logic [ARRAY_SIZE-1:0][OUTR_WIDTH-1:0] outBuff;               // Send to io_inte
 logic forward_systo;                                            // Send to systo_array_inst
 logic clear_systo;                                              // Send to systo_mux_inst
 logic flush_systo;                                              // Send to output_buffer_inst
-logic [1:0] PE_clear_select;                                    // Send to systo_mux_inst
+logic [2*ARRAY_SIZE-2:0] clear_diagonal;                         // Send to systo_mux_inst
+logic [2*ARRAY_SIZE-2:0] flush_diagonal;                         // Send to systo_mux_inst
 logic [1:0] c_out_select;                                       // Send to systo_mux_inst
 
 // systolic_array_inst Wires========
@@ -165,7 +167,10 @@ module systolic_array_fsm(
 );
 */
 // systo_fsm_inst==================
-systolic_array_fsm systo_fsm_inst (
+systolic_array_fsm #(
+    .K_DIM(K_DIM),
+    .ARRAY_SIZE(ARRAY_SIZE)
+) systo_fsm_inst (
     .clk(clk),
     .rst(!rst_n),
     .ena(startSysArray), // editor's note: i changed this to startSysArray, otherwise it would start shifting on the second clock cycle after chip powered on
@@ -174,7 +179,8 @@ systolic_array_fsm systo_fsm_inst (
     .forward_pulse(forward_systo),
     .clear(clear_systo),
     .flush(flush_systo),
-    .PE_clear_select(PE_clear_select),
+    .clear_diagonal(clear_diagonal),
+    .flush_diagonal(flush_diagonal),
     .c_out_select(c_out_select)
 );
 
@@ -256,8 +262,8 @@ systolic_array_mux #(
     .clk(clk),
     .rst(!rst_n),
 
-    .clear(clear_systo),
-    .PE_clear_select(PE_clear_select),
+    .clear_diagonal(clear_diagonal),
+    .flush_diagonal(flush_diagonal),
     .c_out(c_out),
     .c_out_select(c_out_select),
 

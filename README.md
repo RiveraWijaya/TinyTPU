@@ -1,42 +1,41 @@
-![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
+# TinyTPU V2
 
-# Tiny Tapeout Verilog Project Template
+TinyTPU V2 is a serialized signed-INT6 matrix engine for Tiny Tapeout. It
+computes a 4x8 by 8x4 product on the existing 4x4, 16-PE systolic datapath.
+Each PE preserves its accumulator across two consecutive K=4 input tiles, then
+the completed result wavefront is flushed, ReLU-clamped, saturated to 12 bits,
+and streamed through the original GPIO interface.
 
-- [Read the documentation for project](docs/info.md)
+## Architecture
 
-## What is Tiny Tapeout?
+- 16 signed 6x6 multiply-accumulate processing elements
+- 15-bit signed partial sums (covers the K=8 maximum of +8192)
+- four serialized input clocks per systolic update
+- persistent K=8 accumulation with no intermediate K=4 flush or clear
+- width-generic ReLU and unsigned saturation into 12-bit outputs
+- one 12-bit output per clock while the result stream is active
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+The default shared dimension is `K_DIM=8`. The RTL remains parameterized for
+`K_DIM=4` compatibility testing.
 
-To learn more and get started, visit https://tinytapeout.com.
+## RTL simulation
 
-## Set up your Verilog project
+From `test/`, run the default K=8 suite:
 
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
+```sh
+make K_DIM=8
+```
 
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
+Run the compatibility configuration separately:
 
-## Enable GitHub actions to build the results page
+```sh
+make K_DIM=4
+```
 
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+The cocotb suite drives only the Tiny Tapeout pins, checks deterministic,
+corner-case, and seeded-random signed-INT6 matrices against a Python golden
+model, verifies the serialized output stream, and asserts cycle-level latency
+and flush cadence.
 
-## Resources
-
-- [FAQ](https://tinytapeout.com/faq/)
-- [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
-- [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://www.tinytapeout.com/guides/local-hardening/)
-
-## What next?
-
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@tinytapeout](https://twitter.com/tinytapeout)
-  - Bluesky [@tinytapeout.com](https://bsky.app/profile/tinytapeout.com)
+See [the project datasheet](docs/info.md) for the pin mapping and wavefront
+loading convention.

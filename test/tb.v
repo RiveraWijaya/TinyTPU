@@ -6,6 +6,10 @@
 */
 module tb ();
 
+`ifndef K_DIM
+  `define K_DIM 8
+`endif
+
   // Dump the signals to a FST file. You can view it with gtkwave or surfer.
   initial begin
     $dumpfile("tb.fst");
@@ -27,8 +31,13 @@ module tb ();
   wire VGND = 1'b0;
 `endif
 
-  // Replace tt_um_example with your module name:
+`ifdef GL_TEST
   tt_um_4x4TPU user_project (
+`else
+  tt_um_4x4TPU #(
+      .K_DIM(`K_DIM)
+  ) user_project (
+`endif
 
       // Include power ports for the Gate Level test:
 `ifdef GL_TEST

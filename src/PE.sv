@@ -9,7 +9,7 @@
 
 module processing_element #(
     parameter DATA_WIDTH = 6,       // width of input operands
-    parameter PSUM_WIDTH  = 14      // width of accumulator
+    parameter PSUM_WIDTH  = 15      // width of accumulator
 )(
     input wire                      clk,
     input wire                      rst,    // GLOBAL RESET
@@ -26,8 +26,8 @@ module processing_element #(
 wire [2*DATA_WIDTH-1:0] product;
 wire [PSUM_WIDTH-1:0] product_sum;
 
-assign product = $signed(a_in) * $signed(b_in);           // Adder
-assign product_sum = $signed(product) + $signed(c_reg);   // Multiplier
+assign product = $signed(a_in) * $signed(b_in);
+assign product_sum = $signed(product) + $signed(c_reg);
 
 // A/B Register
 always @(posedge clk or posedge rst)  
